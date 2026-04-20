@@ -1,32 +1,32 @@
-<svg width="1400" height="520" viewBox="0 0 1400 520" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="1400" height="520" fill="#0B1220"/>
-  <text x="70" y="92" fill="#F8FAFC" font-family="Inter, Arial, sans-serif" font-size="40" font-weight="800">Three render modes</text>
-  <text x="70" y="128" fill="#93A8C6" font-family="Inter, Arial, sans-serif" font-size="22">Choose speed, fidelity, or polish depending on the answer and the moment.</text>
+<svg width="1400" height="980" viewBox="0 0 1400 980" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1400" height="980" fill="#0B1220"/>
+  <text x="90" y="96" fill="#F8FAFC" font-family="Inter, Arial, sans-serif" font-size="42" font-weight="800">Three render modes</text>
+  <text x="90" y="138" fill="#93A8C6" font-family="Inter, Arial, sans-serif" font-size="24">Choose speed, continuity, or polish depending on the answer and the moment.</text>
 
   <g>
-    <rect x="70" y="180" width="392" height="250" rx="26" fill="#F8FAFC"/>
-    <rect x="98" y="206" width="128" height="28" rx="14" fill="#DDF6EE"/>
-    <text x="122" y="225" fill="#1C7C72" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="800">QUICK LOCAL</text>
-    <text x="98" y="278" fill="#13253C" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="800">Fastest path</text>
-    <text x="98" y="324" fill="#475569" font-family="Inter, Arial, sans-serif" font-size="20">Designed shell + faithful local renderer.</text>
-    <text x="98" y="360" fill="#475569" font-family="Inter, Arial, sans-serif" font-size="20">Best for immediate export and browser open.</text>
+    <rect x="90" y="200" width="1220" height="195" rx="28" fill="#F8FAFC"/>
+    <rect x="124" y="230" width="128" height="28" rx="14" fill="#DDF6EE"/>
+    <text x="148" y="249" fill="#1C7C72" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="800">QUICK LOCAL</text>
+    <text x="124" y="304" fill="#13253C" font-family="Inter, Arial, sans-serif" font-size="38" font-weight="800">Fastest path</text>
+    <text x="124" y="352" fill="#475569" font-family="Inter, Arial, sans-serif" font-size="22">Designed shell + faithful local renderer.</text>
+    <text x="124" y="386" fill="#475569" font-family="Inter, Arial, sans-serif" font-size="22">Best when you want an export immediately and a browser window opens right away.</text>
   </g>
 
   <g>
-    <rect x="504" y="180" width="392" height="250" rx="26" fill="#112132" stroke="#29415E"/>
-    <rect x="532" y="206" width="160" height="28" rx="14" fill="#20384E"/>
-    <text x="556" y="225" fill="#A7F3D0" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="800">CURRENT PI MODEL</text>
-    <text x="532" y="278" fill="#FFFFFF" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="800">Best in-session</text>
-    <text x="532" y="324" fill="#CBD5E1" font-family="Inter, Arial, sans-serif" font-size="20">Uses the current model for a designed second pass.</text>
-    <text x="532" y="360" fill="#CBD5E1" font-family="Inter, Arial, sans-serif" font-size="20">Good when you want continuity inside Pi.</text>
+    <rect x="90" y="430" width="1220" height="195" rx="28" fill="#112132" stroke="#29415E"/>
+    <rect x="124" y="460" width="170" height="28" rx="14" fill="#20384E"/>
+    <text x="148" y="479" fill="#A7F3D0" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="800">CURRENT PI MODEL</text>
+    <text x="124" y="534" fill="#FFFFFF" font-family="Inter, Arial, sans-serif" font-size="38" font-weight="800">Best in-session</text>
+    <text x="124" y="582" fill="#CBD5E1" font-family="Inter, Arial, sans-serif" font-size="22">Uses the current Pi model for a richer second-pass HTML render.</text>
+    <text x="124" y="616" fill="#CBD5E1" font-family="Inter, Arial, sans-serif" font-size="22">Good when you want continuity inside the same session and model context.</text>
   </g>
 
   <g>
-    <rect x="938" y="180" width="392" height="250" rx="26" fill="#1B1A14" stroke="#4A3820"/>
-    <rect x="966" y="206" width="146" height="28" rx="14" fill="#3A2B12"/>
-    <text x="990" y="225" fill="#FDE68A" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="800">GEMINI CLI</text>
-    <text x="966" y="278" fill="#FFF6DB" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="800">Most polished</text>
-    <text x="966" y="324" fill="#E5D5B8" font-family="Inter, Arial, sans-serif" font-size="20">Designed export via external CLI renderer.</text>
-    <text x="966" y="360" fill="#E5D5B8" font-family="Inter, Arial, sans-serif" font-size="20">Falls back to local HTML if valid HTML is not returned.</text>
+    <rect x="90" y="660" width="1220" height="195" rx="28" fill="#1B1A14" stroke="#4A3820"/>
+    <rect x="124" y="690" width="146" height="28" rx="14" fill="#3A2B12"/>
+    <text x="148" y="709" fill="#FDE68A" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="800">GEMINI CLI</text>
+    <text x="124" y="764" fill="#FFF6DB" font-family="Inter, Arial, sans-serif" font-size="38" font-weight="800">Most polished</text>
+    <text x="124" y="812" fill="#E5D5B8" font-family="Inter, Arial, sans-serif" font-size="22">Uses Gemini CLI for a designed export outside the current Pi model path.</text>
+    <text x="124" y="846" fill="#E5D5B8" font-family="Inter, Arial, sans-serif" font-size="22">If Gemini does not return valid HTML, the extension falls back to the local renderer.</text>
   </g>
 </svg>
