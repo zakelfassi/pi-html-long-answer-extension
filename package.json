@@ -1,16 +1,25 @@
 {
   "name": "pi-html-long-answer-extension",
   "version": "0.2.0",
-  "private": true,
+  "private": false,
   "description": "Long-answer HTML export extension for Oh My Pi and Pi.",
   "type": "commonjs",
   "main": "index.js",
   "scripts": {
     "test": "node --test test/*.test.js"
   },
+  "files": [
+    "index.js",
+    "README.md",
+    "assets/"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/zakelfassi/pi-html-long-answer-extension.git"
+  },
+  "homepage": "https://github.com/zakelfassi/pi-html-long-answer-extension#readme",
+  "bugs": {
+    "url": "https://github.com/zakelfassi/pi-html-long-answer-extension/issues"
   },
   "keywords": [
     "oh-my-pi",

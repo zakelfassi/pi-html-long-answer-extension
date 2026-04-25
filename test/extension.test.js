@@ -33,13 +33,16 @@ async function withTempExportRoot(fn) {
   }
 }
 
-test('package metadata preserves git-first Pi and OMP entry contracts', () => {
-  assert.equal(packageJson.private, true);
+test('package metadata preserves npm Pi and OMP entry contracts', () => {
+  assert.equal(packageJson.private, false);
   assert.equal(packageJson.type, 'commonjs');
   assert.equal(packageJson.main, 'index.js');
   assert.equal(packageJson.engines.node, '>=20');
   assert.equal(packageJson.pi.extensions[0], './index.js');
   assert.equal(packageJson.omp.extensions[0], './index.js');
+  assert.ok(packageJson.keywords.includes('pi-package'));
+  assert.ok(packageJson.keywords.includes('pi-extension'));
+  assert.deepEqual(packageJson.files, ['index.js', 'README.md', 'assets/']);
   assert.ok(packageJson.scripts.test.includes('node --test'));
 
   for (const entry of [packageJson.main, packageJson.pi.extensions[0], packageJson.omp.extensions[0]]) {

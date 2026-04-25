@@ -53,6 +53,12 @@ Instead it:
 
 ## Quick start
 
+Native Pi npm install:
+
+```bash
+pi install npm:pi-html-long-answer-extension
+```
+
 Native Pi git install:
 
 ```bash
@@ -76,15 +82,16 @@ Then ask for a long answer and run:
 
 ## Installation and compatibility matrix
 
-This repo is **git-first** for now. `package.json` is intentionally `private: true`, so there is no supported npm install command yet.
+This package is published to npm for Pi package discovery and remains installable directly from git for pinned or source-reviewed installs.
 
 | Harness / platform | Install or load path | Verify after install | Expected result | Status |
 |---|---|---|---|---|
-| Native / legacy Pi | `pi install git:https://github.com/zakelfassi/pi-html-long-answer-extension.git` | Run `/html-last-version`, then `/html-last local` after a long answer | Version notification, then a browser-opened local HTML export | Supported path; verify on your installed Pi version |
+| Native Pi npm package | `pi install npm:pi-html-long-answer-extension` | Run `/html-last-version`, then `/html-last local` after a long answer | Version notification, then a browser-opened local HTML export | Supported package path; appears in npm-backed Pi package discovery |
+| Native / legacy Pi git | `pi install git:https://github.com/zakelfassi/pi-html-long-answer-extension.git` | Run `/html-last-version`, then `/html-last local` after a long answer | Version notification, then a browser-opened local HTML export | Supported source install path; verify on your installed Pi version |
 | Manual Pi extension root | Clone to `~/.pi/agent/extensions/html-long-answer` | Restart/load Pi, then run `/html-last-version` and `/html-last local` | Extension auto-loads from the global root | Supported path; verify on your installed Pi version |
 | Oh My Pi / OMP | Clone to `~/.omp/agent/extensions/html-long-answer` | Restart/load OMP, then run `/html-last-version` and `/html-last local` | Extension auto-loads from the OMP global root | Supported path; verify on your installed OMP version |
 | OMP one-off test | `omp -e /absolute/path/to/index.js` | Run `/html-last-version` | Version notification appears | Supported one-off smoke path |
-| Pi-compatible derived harnesses | Use the Pi git/manual instructions if the harness honors Pi `package.json.pi.extensions` or Pi extension roots | Run `/html-last-version` and `/html-last local` | Same command behavior as Pi | Harness-specific commands are unverified |
+| Pi-compatible derived harnesses | Use the Pi npm/git/manual instructions if the harness honors Pi `package.json.pi.extensions` or Pi extension roots | Run `/html-last-version` and `/html-last local` | Same command behavior as Pi | Harness-specific commands are unverified |
 | LazyPi | No LazyPi-specific command is documented here | Use the Pi-compatible row only if your LazyPi setup exposes Pi-compatible extension loading | Do not assume a LazyPi-only install command | Exact LazyPi third-party extension flow unverified |
 | Gemini CLI | Optional external renderer used by `/html-last gemini` | Run `/html-last gemini` after a long answer | Designed HTML export, or a clean fallback to local HTML if Gemini is unavailable/invalid | Optional |
 
@@ -99,9 +106,10 @@ This repo is **git-first** for now. `package.json` is intentionally `private: tr
 | `/html-last pi` | Queues a current-model designed HTML pass, then writes the result or falls back safely |
 | `/html-last gemini` | Uses Gemini CLI when available; invalid/unsafe/non-HTML output falls back to local HTML |
 
-For reproducible installs, pin a git ref or tag once you choose a release:
+For reproducible installs, pin an npm version or a git ref/tag once you choose a release:
 
 ```bash
+pi install npm:pi-html-long-answer-extension@0.2.0
 pi install git:https://github.com/zakelfassi/pi-html-long-answer-extension.git@v0.2.0
 ```
 
