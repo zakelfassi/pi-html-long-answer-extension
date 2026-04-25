@@ -4,11 +4,11 @@ const fs = require('fs/promises');
 const path = require('path');
 const os = require('os');
 const crypto = require('crypto');
-const { execFile } = require('child_process');
+const { execFile, spawn } = require('child_process');
 const { promisify } = require('util');
 
 const execFileAsync = promisify(execFile);
-const EXPORT_ROOT = path.join(os.tmpdir(), 'pi-html-exports');
+const DEFAULT_EXPORT_ROOT = path.join(os.tmpdir(), 'pi-html-exports');
 const PREF_ENTRY_TYPE = 'html-long-answer-pref';
 const SOURCE_ENTRY_TYPE = 'html-long-answer-source';
 const EXPORT_ENTRY_TYPE = 'html-long-answer-export';
@@ -17,6 +17,16 @@ const LONG_ANSWER_DEFAULTS = {
   minLines: 24,
   minParagraphs: 6,
 };
+const MAX_RICH_HTML_CHARS = 512 * 1024;
+const MAX_RICH_HTML_TAGS = 2500;
+const BLOCKED_RICH_TAGS = /<\s*\/?\s*(?:script|iframe|object|embed|link|base|form|input|button|textarea|select|option)\b/i;
+const BLOCKED_META_REFRESH = /<\s*meta\b[^>]*http-equiv\s*=\s*(['"]?)refresh\1/i;
+const EVENT_HANDLER_ATTR = /\s+on[a-z]+\s*=/i;
+const JAVASCRIPT_URL_ATTR = /\s(?:href|src|xlink:href|action|formaction)\s*=\s*(['\"]?)\s*javascript:/i;
+const EXTERNAL_ASSET_ATTR = /\s(?:src|poster)\s*=\s*(['\"]?)\s*(?:https?:)?\/\//i;
+const EXTERNAL_CSS_URL = /url\(\s*(['\"]?)\s*(?:https?:)?\/\//i;
+const OPEN_FAILURE_WINDOW_MS = 1000;
+
 
 function sha(input) {
   return crypto.createHash('sha1').update(String(input || '')).digest('hex');
@@ -448,12 +458,17 @@ async function ensureDir(dir) {
   await fs.mkdir(dir, { recursive: true });
 }
 
+function getExportRoot() {
+  return process.env.PI_HTML_LONG_ANSWER_EXPORT_ROOT || DEFAULT_EXPORT_ROOT;
+}
+
 async function writeHtmlArtifact({ title, bodyHtml, sourceText, mode }) {
-  await ensureDir(EXPORT_ROOT);
+  const exportRoot = getExportRoot();
+  await ensureDir(exportRoot);
   const now = new Date();
   const iso = now.toISOString().replace(/[:.]/g, '-');
   const fileName = `${iso}-${slugify(title)}-${mode}.html`;
-  const filePath = path.join(EXPORT_ROOT, fileName);
+  const filePath = path.join(exportRoot, fileName);
   const html = buildLocalHtmlDocument(title, bodyHtml, {
     exportedAt: now.toISOString(),
     words: wordCount(sourceText),
@@ -464,6 +479,51 @@ async function writeHtmlArtifact({ title, bodyHtml, sourceText, mode }) {
   });
   await fs.writeFile(filePath, html, 'utf8');
   return filePath;
+}
+
+async function writeRichHtmlArtifact({ title, htmlText }) {
+  const html = validateRichHtmlDocument(htmlText);
+  const exportRoot = getExportRoot();
+  await ensureDir(exportRoot);
+  const now = new Date();
+  const iso = now.toISOString().replace(/[:.]/g, '-');
+  const fileName = `${iso}-${slugify(title)}-llm-enhanced.html`;
+  const filePath = path.join(exportRoot, fileName);
+  await fs.writeFile(filePath, html, 'utf8');
+  return filePath;
+}
+
+function validateRichHtmlDocument(htmlText) {
+  const html = String(htmlText || '').trim();
+  if (!html) {
+    throw new Error('Rich HTML output was empty.');
+  }
+  if (html.length > MAX_RICH_HTML_CHARS) {
+    throw new Error(`Rich HTML output exceeded ${MAX_RICH_HTML_CHARS} characters.`);
+  }
+  const tagCount = (html.match(/<\/?[a-z][^>]*>/gi) || []).length;
+  if (tagCount > MAX_RICH_HTML_TAGS) {
+    throw new Error(`Rich HTML output exceeded ${MAX_RICH_HTML_TAGS} HTML tags.`);
+  }
+  if (!/<html[\s>]/i.test(html) || !/<body[\s>]/i.test(html)) {
+    throw new Error('Rich HTML output must be a standalone document with <html> and <body>.');
+  }
+  if (BLOCKED_RICH_TAGS.test(html)) {
+    throw new Error('Rich HTML output contained a blocked HTML tag.');
+  }
+  if (BLOCKED_META_REFRESH.test(html)) {
+    throw new Error('Rich HTML output contained a meta refresh.');
+  }
+  if (EVENT_HANDLER_ATTR.test(html)) {
+    throw new Error('Rich HTML output contained an event-handler attribute.');
+  }
+  if (JAVASCRIPT_URL_ATTR.test(html)) {
+    throw new Error('Rich HTML output contained a javascript: URL.');
+  }
+  if (EXTERNAL_ASSET_ATTR.test(html) || EXTERNAL_CSS_URL.test(html)) {
+    throw new Error('Rich HTML output referenced an external asset.');
+  }
+  return /^<!DOCTYPE html/i.test(html) ? html : `<!DOCTYPE html>\n${html}`;
 }
 
 function isLongAnswer(text, config) {
@@ -483,6 +543,51 @@ function parseArgs(rawArgs) {
     return rawArgs.args.map((item) => String(item));
   }
   return [];
+}
+
+function parseHtmlLastInput(text) {
+  const source = typeof text === 'string' ? text.trim() : '';
+  if (/^\/html-last-version\s*$/i.test(source)) {
+    return { command: 'version', args: '' };
+  }
+
+  const match = /^\/html-last(?:\s+([\s\S]*))?$/i.exec(source);
+  if (!match) return null;
+  return { command: 'export', args: match[1] || '' };
+}
+
+async function resolveOpenCommand(command) {
+  if (!command) return null;
+  if (path.isAbsolute(command)) {
+    try {
+      await fs.access(command, fs.constants.X_OK);
+      return command;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  const searchPath = String(process.env.PATH || '').split(path.delimiter).filter(Boolean);
+  for (const directory of searchPath) {
+    const candidate = path.join(directory, command);
+    try {
+      await fs.access(candidate, fs.constants.X_OK);
+      return candidate;
+    } catch (_) {
+      // Keep searching PATH.
+    }
+  }
+  return null;
+}
+
+function resolveForcedExportMode(rawArgs) {
+  const parsedArgs = parseArgs(rawArgs);
+  if (parsedArgs.some((arg) => /^(choose|chooser|menu)$/i.test(arg))) return 'choose';
+  if (parsedArgs.some((arg) => /^(gemini)$/i.test(arg))) return 'rich-gemini';
+  if (parsedArgs.some((arg) => /^(pi|claude|current)$/i.test(arg))) return 'rich-pi';
+  if (parsedArgs.some((arg) => /^(local|quick)$/i.test(arg))) return 'local';
+  if (parsedArgs.some((arg) => /^(rich|enhanced|designed)$/i.test(arg))) return 'rich-pi';
+  return null;
 }
 
 function extractHtmlDocument(text) {
@@ -604,6 +709,10 @@ module.exports = function htmlLongAnswerExtension(pi) {
     }
   }
 
+  function notifyCommandError(ctx, error) {
+    notify(ctx, `Long Answer HTML command error: ${error && error.message ? error.message : String(error)} [html-long-answer ${EXTENSION_VERSION}]`, 'error');
+  }
+
   async function isGeminiCliAvailable() {
     if (typeof state.geminiAvailable === 'boolean') return state.geminiAvailable;
     try {
@@ -616,19 +725,41 @@ module.exports = function htmlLongAnswerExtension(pi) {
   }
 
   async function openArtifact(filePath) {
-    try {
-      if (process.platform === 'darwin') {
-        await execFileAsync('/usr/bin/open', [filePath], { timeout: 3000 });
-        return true;
+    const command = process.platform === 'darwin'
+      ? '/usr/bin/open'
+      : process.platform === 'linux'
+        ? 'xdg-open'
+        : null;
+    const executable = await resolveOpenCommand(command);
+    if (!executable) return false;
+
+    return new Promise((resolve) => {
+      let child;
+      let settled = false;
+      let timer;
+
+      const settle = (opened) => {
+        if (settled) return;
+        settled = true;
+        if (timer) clearTimeout(timer);
+        resolve(opened);
+      };
+
+      try {
+        child = spawn(executable, [filePath], {
+          detached: true,
+          stdio: 'ignore',
+        });
+      } catch (_) {
+        settle(false);
+        return;
       }
-      if (process.platform === 'linux') {
-        await execFileAsync('xdg-open', [filePath], { timeout: 3000 });
-        return true;
-      }
-    } catch (_) {
-      // Best effort only.
-    }
-    return false;
+
+      child.once('error', () => settle(false));
+      child.once('exit', (code) => settle(code === 0));
+      child.unref();
+      timer = setTimeout(() => settle(true), OPEN_FAILURE_WINDOW_MS);
+    });
   }
 
   async function maybeOpenArtifact(ctx, filePath, mode) {
@@ -676,11 +807,9 @@ module.exports = function htmlLongAnswerExtension(pi) {
   }
 
   async function exportRichHtmlResult(ctx, source, htmlText) {
-    const filePath = await writeHtmlArtifact({
+    const filePath = await writeRichHtmlArtifact({
       title: source.title,
-      bodyHtml: htmlText,
-      sourceText: source.text,
-      mode: 'llm-enhanced',
+      htmlText,
     });
     const meta = {
       path: filePath,
@@ -695,9 +824,10 @@ module.exports = function htmlLongAnswerExtension(pi) {
     return meta;
   }
 
-  function normalizeChoice(result) {
+  function normalizeChoice(result, options) {
     if (typeof result === 'string') return result;
     if (typeof result === 'number') {
+      if (Array.isArray(options) && options[result]) return options[result].value;
       return ['local', 'rich', 'inline', 'never'][result] || null;
     }
     if (result && typeof result === 'object') {
@@ -722,7 +852,7 @@ module.exports = function htmlLongAnswerExtension(pi) {
     const prompt = `Long answer detected — ${summary}`;
     try {
       const result = await ui.select(prompt, options);
-      return normalizeChoice(result) || null;
+      return normalizeChoice(result, options) || null;
     } catch (_) {
       return null;
     }
@@ -812,14 +942,14 @@ module.exports = function htmlLongAnswerExtension(pi) {
 
     try {
       const result = await ctx.ui.select('Choose HTML render mode', options);
-      return normalizeChoice(result) || options[0].value;
+      return normalizeChoice(result, options) || options[0].value;
     } catch (_) {
       return geminiAvailable ? 'rich-gemini' : 'rich-pi';
     }
   }
 
   function notifyLongAnswerAvailable(ctx, source) {
-    notify(ctx, `Long answer captured for HTML export (${source.stats.words} words). Run /html-last for choices, /html-last gemini for Gemini, or /html-last pi for the current Pi model. [html-long-answer ${EXTENSION_VERSION}]`, 'info');
+    notify(ctx, `Long answer captured for HTML export (${source.stats.words} words). Run /html-last for quick local HTML, /html-last choose for choices, /html-last gemini for Gemini, or /html-last pi for the current Pi model. [html-long-answer ${EXTENSION_VERSION}]`, 'info');
   }
 
   async function handleChoice(choice, ctx, source) {
@@ -853,7 +983,12 @@ module.exports = function htmlLongAnswerExtension(pi) {
 
     const htmlDocument = extractHtmlDocument(info.text);
     if (htmlDocument) {
-      await exportRichHtmlResult(ctx, state.pendingRichExport.source, htmlDocument);
+      try {
+        await exportRichHtmlResult(ctx, state.pendingRichExport.source, htmlDocument);
+      } catch (error) {
+        await notify(ctx, `Richer HTML pass was unsafe or invalid: ${error && error.message ? error.message : String(error)}. Wrote a fallback HTML export instead. [html-long-answer ${EXTENSION_VERSION}]`, 'warning');
+        await exportLocalHtml(ctx, state.pendingRichExport.source, 'llm-enhanced-fallback');
+      }
     } else {
       await exportLocalHtml(ctx, {
         ...state.pendingRichExport.source,
@@ -901,23 +1036,10 @@ module.exports = function htmlLongAnswerExtension(pi) {
       return;
     }
 
-    const parsedArgs = parseArgs(args);
-    const wantsGemini = parsedArgs.some((arg) => /^(gemini)$/i.test(arg));
-    const wantsPi = parsedArgs.some((arg) => /^(pi|claude|current)$/i.test(arg));
-    const wantsLocal = parsedArgs.some((arg) => /^(local|quick)$/i.test(arg));
-    const wantsRich = parsedArgs.some((arg) => /^(rich|enhanced|designed)$/i.test(arg));
-
-    let mode = 'local';
-    if (wantsGemini) {
-      mode = 'rich-gemini';
-    } else if (wantsPi) {
-      mode = 'rich-pi';
-    } else if (wantsLocal) {
-      mode = 'local';
-    } else if (wantsRich) {
-      mode = 'rich-pi';
-    } else if (ctx && ctx.hasUI) {
-      mode = await chooseCommandExportMode(ctx);
+    const forcedMode = resolveForcedExportMode(args);
+    let mode = forcedMode || 'local';
+    if (mode === 'choose') {
+      mode = ctx && ctx.hasUI ? await chooseCommandExportMode(ctx) : 'local';
     }
 
     if (mode === 'rich-gemini') {
@@ -933,7 +1055,11 @@ module.exports = function htmlLongAnswerExtension(pi) {
   }
 
   if (typeof pi.setLabel === 'function') {
-    pi.setLabel(`Long Answer HTML ${EXTENSION_VERSION}`);
+    try {
+      pi.setLabel(`Long Answer HTML ${EXTENSION_VERSION}`);
+    } catch (_) {
+      // Some hosts reject action methods during extension loading.
+    }
   }
 
   const restoreHandler = async (_event, ctx) => {
@@ -944,6 +1070,22 @@ module.exports = function htmlLongAnswerExtension(pi) {
     pi.on('session_start', restoreHandler);
     pi.on('session_branch', restoreHandler);
     pi.on('session_tree', restoreHandler);
+    pi.on('input', async (event, ctx) => {
+      const parsedInput = parseHtmlLastInput(event && event.text);
+      if (!parsedInput) return undefined;
+
+      try {
+        if (parsedInput.command === 'version') {
+          notify(ctx, `html-long-answer ${EXTENSION_VERSION}`, 'info');
+        } else {
+          await exportLatestFromCommand(parsedInput.args, ctx);
+        }
+      } catch (error) {
+        notifyCommandError(ctx, error);
+      }
+
+      return { handled: true, action: 'handled' };
+    });
     pi.on('message_end', async (event, ctx) => {
       try {
         await handleAssistantMessage(event, ctx);
@@ -955,10 +1097,10 @@ module.exports = function htmlLongAnswerExtension(pi) {
 
   if (typeof pi.registerCommand === 'function') {
     pi.registerCommand('html-last', {
-      description: 'Export the latest eligible assistant answer as HTML. Use `gemini`, `pi`, or `local` to force a render path.',
+      description: 'Export the latest eligible assistant answer as HTML. Use `choose`, `gemini`, `pi`, or `local` to force a render path.',
       handler: (args, ctx) => {
         void exportLatestFromCommand(args, ctx).catch((error) => {
-          notify(ctx, `Long Answer HTML command error: ${error && error.message ? error.message : String(error)} [html-long-answer ${EXTENSION_VERSION}]`, 'error');
+          notifyCommandError(ctx, error);
         });
       },
     });
@@ -970,4 +1112,20 @@ module.exports = function htmlLongAnswerExtension(pi) {
       },
     });
   }
+};
+
+module.exports._internals = {
+  buildLocalHtmlDocument,
+  buildRichHtmlPrompt,
+  extractHtmlDocument,
+  formatInline,
+  getExportRoot,
+  parseArgs,
+  parseHtmlLastInput,
+  resolveOpenCommand,
+  renderMarkdownish,
+  resolveForcedExportMode,
+  validateRichHtmlDocument,
+  writeHtmlArtifact,
+  writeRichHtmlArtifact,
 };

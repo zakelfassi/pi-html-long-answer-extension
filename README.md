@@ -44,19 +44,22 @@ Instead it:
 
 | Command | Result |
 |---|---|
-| `/html-last` | Opens a render-mode chooser |
+| `/html-last` | Opens quick local HTML without starting a Pi model turn |
+| `/html-last choose` | Opens a render-mode chooser |
 | `/html-last local` | Forces quick local HTML |
 | `/html-last pi` | Forces designed HTML via the current Pi model |
 | `/html-last gemini` | Forces designed HTML via Gemini CLI |
 | `/html-last-version` | Shows the loaded extension version |
 
-## Installation
+## Quick start
 
-### Oh My Pi / OMP
+Native Pi git install:
 
-OMP auto-discovers native extensions from `~/.omp/agent/extensions`.
+```bash
+pi install git:https://github.com/zakelfassi/pi-html-long-answer-extension.git
+```
 
-Global install:
+Oh My Pi / OMP global install:
 
 ```bash
 mkdir -p ~/.omp/agent/extensions
@@ -64,37 +67,43 @@ git clone https://github.com/zakelfassi/pi-html-long-answer-extension.git \
   ~/.omp/agent/extensions/html-long-answer
 ```
 
-One-off test without installing globally:
+Then ask for a long answer and run:
 
-```bash
-omp -e /absolute/path/to/index.js
+```text
+/html-last-version
+/html-last local
 ```
 
-### Legacy Pi
+## Installation and compatibility matrix
 
-Pi supports extension installation from git and also supports direct extension loading.
+This repo is **git-first** for now. `package.json` is intentionally `private: true`, so there is no supported npm install command yet.
 
-Install from git:
+| Harness / platform | Install or load path | Verify after install | Expected result | Status |
+|---|---|---|---|---|
+| Native / legacy Pi | `pi install git:https://github.com/zakelfassi/pi-html-long-answer-extension.git` | Run `/html-last-version`, then `/html-last local` after a long answer | Version notification, then a browser-opened local HTML export | Supported path; verify on your installed Pi version |
+| Manual Pi extension root | Clone to `~/.pi/agent/extensions/html-long-answer` | Restart/load Pi, then run `/html-last-version` and `/html-last local` | Extension auto-loads from the global root | Supported path; verify on your installed Pi version |
+| Oh My Pi / OMP | Clone to `~/.omp/agent/extensions/html-long-answer` | Restart/load OMP, then run `/html-last-version` and `/html-last local` | Extension auto-loads from the OMP global root | Supported path; verify on your installed OMP version |
+| OMP one-off test | `omp -e /absolute/path/to/index.js` | Run `/html-last-version` | Version notification appears | Supported one-off smoke path |
+| Pi-compatible derived harnesses | Use the Pi git/manual instructions if the harness honors Pi `package.json.pi.extensions` or Pi extension roots | Run `/html-last-version` and `/html-last local` | Same command behavior as Pi | Harness-specific commands are unverified |
+| LazyPi | No LazyPi-specific command is documented here | Use the Pi-compatible row only if your LazyPi setup exposes Pi-compatible extension loading | Do not assume a LazyPi-only install command | Exact LazyPi third-party extension flow unverified |
+| Gemini CLI | Optional external renderer used by `/html-last gemini` | Run `/html-last gemini` after a long answer | Designed HTML export, or a clean fallback to local HTML if Gemini is unavailable/invalid | Optional |
+
+## Verify after install
+
+| Command | Expected result |
+|---|---|
+| `/html-last-version` | Shows the loaded `html-long-answer` version |
+| `/html-last` | Writes a local HTML artifact and opens it in the default browser without starting a Pi model turn |
+| `/html-last choose` | Opens the render-mode chooser when UI selection is available |
+| `/html-last local` | Writes a local HTML artifact and opens it in the default browser |
+| `/html-last pi` | Queues a current-model designed HTML pass, then writes the result or falls back safely |
+| `/html-last gemini` | Uses Gemini CLI when available; invalid/unsafe/non-HTML output falls back to local HTML |
+
+For reproducible installs, pin a git ref or tag once you choose a release:
 
 ```bash
-pi install git:https://github.com/zakelfassi/pi-html-long-answer-extension.git
+pi install git:https://github.com/zakelfassi/pi-html-long-answer-extension.git@v0.2.0
 ```
-
-Or place it manually in the legacy global extension root:
-
-```bash
-mkdir -p ~/.pi/agent/extensions
-git clone https://github.com/zakelfassi/pi-html-long-answer-extension.git \
-  ~/.pi/agent/extensions/html-long-answer
-```
-
-### Shipping support for both runtimes
-
-This repo includes both extension manifest keys in `package.json`:
-- `omp.extensions`
-- `pi.extensions`
-
-That keeps directory/package resolution compatible with both ecosystems.
 
 ## Runtime behavior
 
@@ -102,42 +111,52 @@ That keeps directory/package resolution compatible with both ecosystems.
 - Long answers are captured into session state so `/html-last` can work on prior assistant replies.
 - Local and designed exports open automatically in the browser after the file is written.
 - Raw URLs such as `https://example.com` are linkified in local exports.
-- Gemini rich renders are validated for actual HTML; invalid output falls back to the local renderer.
+- Rich Pi/Gemini renders must be standalone HTML documents with inline CSS only.
+- Rich HTML is validated before writing: scripts, event-handler attributes, `javascript:` URLs, external assets, external CSS URLs, unsafe tags, oversized output, and overly complex output are rejected or routed to fallback behavior.
+- Invalid, unsafe, or non-HTML rich output falls back to the local renderer instead of writing a malformed nested document.
 
 ## Repo layout
 
 ```text
 html-long-answer/
+├── .github/
+│   └── workflows/
+│       └── ci.yml
 ├── assets/
 │   ├── flow.svg
 │   ├── hero.svg
 │   └── render-modes.svg
+├── test/
+│   └── extension.test.js
 ├── index.js
 ├── package.json
+├── pnpm-lock.yaml
 ├── README.md
 └── .gitignore
 ```
 
 ## Development notes
 
-The extension currently lives and runs as a single-file runtime module (`index.js`) so it is easy to install directly into an extension root.
+The extension runtime still lives in a single file (`index.js`) so it is easy to install directly into a Pi or OMP extension root. Tests and CI live outside the runtime path.
+
+Use PNPM:
+
+```bash
+pnpm install
+pnpm test
+```
 
 If you modify it, re-test these flows:
 - long answer -> lightweight notice only
-- `/html-last` -> chooser appears
+- `/html-last` -> local HTML writes and opens without starting a Pi model turn
+- `/html-last choose` -> chooser appears
 - `/html-last local` -> HTML writes and opens
-- `/html-last pi` -> second-pass render path queues/runs
+- `/html-last pi` -> second-pass render path queues/runs and validates rich HTML
 - `/html-last gemini` -> Gemini render path succeeds or cleanly falls back
 - `/html-last-version` -> version shown in-session
 
 ## Trust and security
 
-Extensions run with your user permissions. Only install from sources you trust.
+Extensions run with your user permissions. Only install from sources you trust, review the source before installing, and pin a git ref or tag when you need reproducible behavior.
 
-## Compatibility notes
-
-This repo is designed to ship to:
-- Oh My Pi / OMP users through `~/.omp/agent/extensions`
-- legacy Pi users through `pi install ...` or `~/.pi/agent/extensions`
-
-The install paths and dual manifest strategy are based on the upstream Pi and OMP extension-loading models.
+Rich HTML generated by Pi or Gemini is treated as untrusted until it passes this extension's validation. The validator is intentionally conservative: if rich output includes active scripts, event handlers, external assets, or unsafe URLs, the extension falls back to local HTML rather than writing the rich document.
