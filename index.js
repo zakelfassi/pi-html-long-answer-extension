@@ -23,7 +23,7 @@ const BLOCKED_RICH_TAGS = /<\s*\/?\s*(?:script|iframe|object|embed|link|base|for
 const BLOCKED_META_REFRESH = /<\s*meta\b[^>]*http-equiv\s*=\s*(['"]?)refresh\1/i;
 const EVENT_HANDLER_ATTR = /\s+on[a-z]+\s*=/i;
 const JAVASCRIPT_URL_ATTR = /\s(?:href|src|xlink:href|action|formaction)\s*=\s*(['\"]?)\s*javascript:/i;
-const EXTERNAL_ASSET_ATTR = /\s(?:(?:src|poster)\s*=\s*(['\"]?)\s*(?:https?:)?\/\/|srcset\s*=\s*(['\"]?)[^'\">]*(?:https?:)?\/\/)/i;
+const EXTERNAL_ASSET_ATTR = /(?:\s(?:src|poster)\s*=\s*(['\"]?)\s*(?:https?:)?\/\/|\ssrcset\s*=\s*(['\"]?)[^'\">]*(?:https?:)?\/\/|<\s*(?:image|use|feimage)\b[^>]*\s(?:href|xlink:href)\s*=\s*(['\"]?)\s*(?:https?:)?\/\/)/i;
 const EXTERNAL_CSS_URL = /(?:url\(\s*(['\"]?)\s*(?:https?:)?\/\/|@import\s+(?:url\(\s*)?(['\"]?)\s*(?:https?:)?\/\/)/i;
 const OPEN_FAILURE_WINDOW_MS = 1000;
 

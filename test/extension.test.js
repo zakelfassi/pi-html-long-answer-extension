@@ -169,6 +169,8 @@ test('rich validation rejects dangerous or over-large HTML', () => {
     richDocument('<img src="https://example.com/a.png" alt="bad" />'),
     richDocument('<main style="background:url(https://example.com/a.png)">bad</main>'),
     richDocument('<img src="data:image/png;base64,abc" srcset="https://example.com/a.png 1x" alt="bad" />'),
+    richDocument('<svg><image href="https://example.com/a.png" /></svg>'),
+    richDocument('<svg><use xlink:href="https://example.com/s.svg#icon" /></svg>'),
     richDocument('<style>@import "https://example.com/x.css"; body { color: red; }</style><main>bad</main>'),
     richDocument('<p>refresh</p>', '<meta http-equiv="refresh" content="0; url=https://example.com" />'),
     '<!DOCTYPE html><body>missing html wrapper</body>',
