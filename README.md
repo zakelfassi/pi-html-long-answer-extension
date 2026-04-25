@@ -92,7 +92,6 @@ This package is published to npm for Pi package discovery and remains installabl
 | Oh My Pi / OMP | Clone to `~/.omp/agent/extensions/html-long-answer` | Restart/load OMP, then run `/html-last-version` and `/html-last local` | Extension auto-loads from the OMP global root | Supported path; verify on your installed OMP version |
 | OMP one-off test | `omp -e /absolute/path/to/index.js` | Run `/html-last-version` | Version notification appears | Supported one-off smoke path |
 | Pi-compatible derived harnesses | Use the Pi npm/git/manual instructions if the harness honors Pi `package.json.pi.extensions` or Pi extension roots | Run `/html-last-version` and `/html-last local` | Same command behavior as Pi | Harness-specific commands are unverified |
-| LazyPi | No LazyPi-specific command is documented here | Use the Pi-compatible row only if your LazyPi setup exposes Pi-compatible extension loading | Do not assume a LazyPi-only install command | Exact LazyPi third-party extension flow unverified |
 | Gemini CLI | Optional external renderer used by `/html-last gemini` | Run `/html-last gemini` after a long answer | Designed HTML export, or a clean fallback to local HTML if Gemini is unavailable/invalid | Optional |
 
 ## Verify after install
