@@ -168,6 +168,8 @@ test('rich validation rejects dangerous or over-large HTML', () => {
     richDocument('<a href="javascript:alert(1)">bad</a>'),
     richDocument('<img src="https://example.com/a.png" alt="bad" />'),
     richDocument('<main style="background:url(https://example.com/a.png)">bad</main>'),
+    richDocument('<img src="data:image/png;base64,abc" srcset="https://example.com/a.png 1x" alt="bad" />'),
+    richDocument('<style>@import "https://example.com/x.css"; body { color: red; }</style><main>bad</main>'),
     richDocument('<p>refresh</p>', '<meta http-equiv="refresh" content="0; url=https://example.com" />'),
     '<!DOCTYPE html><body>missing html wrapper</body>',
     richDocument('x'.repeat(513 * 1024)),
@@ -211,6 +213,8 @@ test('rich extraction and command mode parsing are deterministic', () => {
   assert.equal(internals.resolveForcedExportMode(['pi']), 'rich-pi');
   assert.equal(internals.resolveForcedExportMode({ args: ['quick'] }), 'local');
   assert.equal(internals.resolveForcedExportMode('choose'), 'choose');
+  assert.equal(internals.hasSelectableUi({ ui: { select: () => 'local' } }), true);
+  assert.equal(internals.hasSelectableUi({ hasUI: true, ui: {} }), false);
   assert.deepEqual(internals.parseHtmlLastInput('/html-last quick'), { command: 'export', args: 'quick' });
   assert.deepEqual(internals.parseHtmlLastInput(' /html-last-version '), { command: 'version', args: '' });
   assert.equal(internals.parseHtmlLastInput('/html-lastly'), null);

@@ -23,8 +23,8 @@ const BLOCKED_RICH_TAGS = /<\s*\/?\s*(?:script|iframe|object|embed|link|base|for
 const BLOCKED_META_REFRESH = /<\s*meta\b[^>]*http-equiv\s*=\s*(['"]?)refresh\1/i;
 const EVENT_HANDLER_ATTR = /\s+on[a-z]+\s*=/i;
 const JAVASCRIPT_URL_ATTR = /\s(?:href|src|xlink:href|action|formaction)\s*=\s*(['\"]?)\s*javascript:/i;
-const EXTERNAL_ASSET_ATTR = /\s(?:src|poster)\s*=\s*(['\"]?)\s*(?:https?:)?\/\//i;
-const EXTERNAL_CSS_URL = /url\(\s*(['\"]?)\s*(?:https?:)?\/\//i;
+const EXTERNAL_ASSET_ATTR = /\s(?:(?:src|poster)\s*=\s*(['\"]?)\s*(?:https?:)?\/\/|srcset\s*=\s*(['\"]?)[^'\">]*(?:https?:)?\/\/)/i;
+const EXTERNAL_CSS_URL = /(?:url\(\s*(['\"]?)\s*(?:https?:)?\/\/|@import\s+(?:url\(\s*)?(['\"]?)\s*(?:https?:)?\/\/)/i;
 const OPEN_FAILURE_WINDOW_MS = 1000;
 
 
@@ -590,6 +590,10 @@ function resolveForcedExportMode(rawArgs) {
   return null;
 }
 
+function hasSelectableUi(ctx) {
+  return Boolean(ctx && ctx.ui && typeof ctx.ui.select === 'function');
+}
+
 function extractHtmlDocument(text) {
   const source = String(text || '').trim();
   if (!source) return null;
@@ -1039,7 +1043,7 @@ module.exports = function htmlLongAnswerExtension(pi) {
     const forcedMode = resolveForcedExportMode(args);
     let mode = forcedMode || 'local';
     if (mode === 'choose') {
-      mode = ctx && ctx.hasUI ? await chooseCommandExportMode(ctx) : 'local';
+      mode = hasSelectableUi(ctx) ? await chooseCommandExportMode(ctx) : 'local';
     }
 
     if (mode === 'rich-gemini') {
@@ -1123,6 +1127,7 @@ module.exports._internals = {
   parseArgs,
   parseHtmlLastInput,
   resolveOpenCommand,
+  hasSelectableUi,
   renderMarkdownish,
   resolveForcedExportMode,
   validateRichHtmlDocument,
