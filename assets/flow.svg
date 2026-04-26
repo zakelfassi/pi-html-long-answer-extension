@@ -27,8 +27,8 @@
     <rect x="90" y="430" width="1220" height="150" rx="28" fill="url(#card)" stroke="#D8DEEA"/>
     <rect x="120" y="458" width="90" height="28" rx="14" fill="#DDF6EE"/>
     <text x="143" y="477" fill="#1C7C72" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="800">STEP 2</text>
-    <text x="120" y="522" fill="#0F172A" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="800">A lightweight notice appears</text>
-    <text x="120" y="562" fill="#475569" font-family="Inter, Arial, sans-serif" font-size="21">There is no modal prompt anymore. The notice just tells you that HTML export is available.</text>
+    <text x="120" y="522" fill="#0F172A" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="800">The answer stays visible</text>
+    <text x="120" y="562" fill="#475569" font-family="Inter, Arial, sans-serif" font-size="21">There is no modal prompt or replacement notice. The export stays available on demand.</text>
   </g>
 
   <path d="M700 580V634" stroke="#6B7280" stroke-width="4" marker-end="url(#arrow)"/>

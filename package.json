@@ -1,6 +1,6 @@
 {
   "name": "pi-html-long-answer-extension",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": false,
   "description": "Long-answer HTML export extension for Oh My Pi and Pi.",
   "type": "commonjs",

@@ -17,14 +17,14 @@ It is built for two workflows:
 ## What users should look for
 
 <p>
-  <img src="./assets/flow.svg" alt="Flow diagram showing the extension behavior: long answer finishes, lightweight notice appears, user runs html-last, browser opens the export" width="100%" />
+  <img src="./assets/flow.svg" alt="Flow diagram showing the extension behavior: long answer finishes normally, user runs html-last, browser opens the export" width="100%" />
 </p>
 
-The extension does **not** interrupt the end of a long answer anymore.
+The extension does **not** interrupt or replace the end of a long answer.
 
 Instead it:
-1. captures the answer into session state
-2. shows a lightweight notice that HTML export is available
+1. lets the assistant answer finish normally in the terminal
+2. captures the answer into session state
 3. waits for the user to run `/html-last`
 4. writes and opens the HTML artifact in the default browser
 
@@ -154,7 +154,7 @@ pnpm test
 ```
 
 If you modify it, re-test these flows:
-- long answer -> lightweight notice only
+- long answer -> answer remains visible; no automatic replacement notice appears
 - `/html-last` -> local HTML writes and opens without starting a Pi model turn
 - `/html-last choose` -> chooser appears
 - `/html-last local` -> HTML writes and opens

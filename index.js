@@ -1,4 +1,4 @@
-const EXTENSION_VERSION = '2026-04-20e';
+const EXTENSION_VERSION = '2026-04-26a';
 
 const fs = require('fs/promises');
 const path = require('path');
@@ -582,7 +582,7 @@ async function resolveOpenCommand(command) {
 
 function resolveForcedExportMode(rawArgs) {
   const parsedArgs = parseArgs(rawArgs);
-  if (parsedArgs.some((arg) => /^(choose|chooser|menu)$/i.test(arg))) return 'choose';
+  if (parsedArgs.some((arg) => /^(choose|choices|chooser|menu)$/i.test(arg))) return 'choose';
   if (parsedArgs.some((arg) => /^(gemini)$/i.test(arg))) return 'rich-gemini';
   if (parsedArgs.some((arg) => /^(pi|claude|current)$/i.test(arg))) return 'rich-pi';
   if (parsedArgs.some((arg) => /^(local|quick)$/i.test(arg))) return 'local';
@@ -729,6 +729,7 @@ module.exports = function htmlLongAnswerExtension(pi) {
   }
 
   async function openArtifact(filePath) {
+    if (process.env.PI_HTML_LONG_ANSWER_SKIP_OPEN === '1') return false;
     const command = process.platform === 'darwin'
       ? '/usr/bin/open'
       : process.platform === 'linux'
@@ -930,11 +931,11 @@ module.exports = function htmlLongAnswerExtension(pi) {
   }
 
   async function chooseCommandExportMode(ctx) {
-    const geminiAvailable = await isGeminiCliAvailable();
     if (!ctx || !ctx.ui || typeof ctx.ui.select !== 'function') {
-      return geminiAvailable ? 'rich-gemini' : 'rich-pi';
+      return 'local';
     }
 
+    const geminiAvailable = await isGeminiCliAvailable();
     const options = [
       { label: 'Designed HTML with Gemini CLI', value: 'rich-gemini' },
       { label: 'Designed HTML with current Pi model', value: 'rich-pi' },
@@ -946,15 +947,12 @@ module.exports = function htmlLongAnswerExtension(pi) {
 
     try {
       const result = await ctx.ui.select('Choose HTML render mode', options);
-      return normalizeChoice(result, options) || options[0].value;
+      return normalizeChoice(result, options) || 'local';
     } catch (_) {
-      return geminiAvailable ? 'rich-gemini' : 'rich-pi';
+      return 'local';
     }
   }
 
-  function notifyLongAnswerAvailable(ctx, source) {
-    notify(ctx, `Long answer captured for HTML export (${source.stats.words} words). Run /html-last for quick local HTML, /html-last choose for choices, /html-last gemini for Gemini, or /html-last pi for the current Pi model. [html-long-answer ${EXTENSION_VERSION}]`, 'info');
-  }
 
   async function handleChoice(choice, ctx, source) {
     if (choice === 'never') {
@@ -1017,10 +1015,10 @@ module.exports = function htmlLongAnswerExtension(pi) {
     await rememberEligibleSource(source);
 
     if (!isLongAnswer(info.text, state.config)) return;
-    if (!ctx || !ctx.hasUI) return;
 
     state.lastPromptedSignature = signature;
-    notifyLongAnswerAvailable(ctx, source);
+    // Avoid notifying from message_end: in OMP this can replace the just-finished assistant text.
+    // The answer is already captured; /html-last remains available when the user wants the export.
   }
 
   async function exportLatestFromCommand(args, ctx) {

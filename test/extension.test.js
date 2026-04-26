@@ -106,7 +106,46 @@ test('extension registers commands/events and handles long assistant messages', 
   });
 
   assert.equal(entries.some((entry) => entry.type === 'html-long-answer-source'), true);
-  assert.equal(notifications.some((message) => message.includes('Long answer captured for HTML export')), true);
+  assert.equal(notifications.some((message) => message.includes('Long answer captured for HTML export')), false);
+});
+
+test('/html-last choose falls back to local export when chooser is unavailable', async () => {
+  await withTempExportRoot(async () => {
+    const previousSkipOpen = process.env.PI_HTML_LONG_ANSWER_SKIP_OPEN;
+    process.env.PI_HTML_LONG_ANSWER_SKIP_OPEN = '1';
+
+    try {
+      const events = new Map();
+      const entries = [];
+      const notifications = [];
+      const sentMessages = [];
+      extension({
+        on: (eventName, handler) => events.set(eventName, handler),
+        appendEntry: async (type, data) => entries.push({ type, data }),
+        sendUserMessage: async (message) => sentMessages.push(message),
+      });
+
+      const longText = `# Captured Answer\n\n${'This answer is long enough to trigger capture. '.repeat(80)}`;
+      await events.get('message_end')({ message: { role: 'assistant', text: longText } }, { hasUI: true, ui: {} });
+      await events.get('input')({ text: '/html-last choose' }, {
+        hasUI: true,
+        ui: {
+          select: () => { throw new Error('chooser unavailable'); },
+          notify: (message) => notifications.push(message),
+        },
+      });
+
+      assert.equal(sentMessages.length, 0);
+      assert.equal(entries.some((entry) => entry.type === 'html-long-answer-export' && entry.data.mode === 'local'), true);
+      assert.equal(notifications.some((message) => message.includes('HTML export written')), true);
+    } finally {
+      if (previousSkipOpen === undefined) {
+        delete process.env.PI_HTML_LONG_ANSWER_SKIP_OPEN;
+      } else {
+        process.env.PI_HTML_LONG_ANSWER_SKIP_OPEN = previousSkipOpen;
+      }
+    }
+  });
 });
 
 test('local export preserves shell and representative markdown-ish rendering', async () => {
@@ -215,6 +254,7 @@ test('rich extraction and command mode parsing are deterministic', () => {
   assert.equal(internals.resolveForcedExportMode(['pi']), 'rich-pi');
   assert.equal(internals.resolveForcedExportMode({ args: ['quick'] }), 'local');
   assert.equal(internals.resolveForcedExportMode('choose'), 'choose');
+  assert.equal(internals.resolveForcedExportMode('choices'), 'choose');
   assert.equal(internals.hasSelectableUi({ ui: { select: () => 'local' } }), true);
   assert.equal(internals.hasSelectableUi({ hasUI: true, ui: {} }), false);
   assert.deepEqual(internals.parseHtmlLastInput('/html-last quick'), { command: 'export', args: 'quick' });
