@@ -1,3 +1,5 @@
+
+
 <p align="center">
   <img src="./assets/logomark.svg" alt="htmlify logomark" width="72" />
 </p>
@@ -57,7 +59,7 @@ Per-agent recipes, project rules, and hook setup: [agent-integrations.md](skills
 
 1. **Evidence first.** The skill reads the repo, git state, PRs, CI, and logs before designing anything; unverifiable claims are stamped `needs verification`.
 2. **One HTML file.** Inline CSS+JS in the Hardcopy design language. No CDNs, no fonts, no analytics, no build.
-3. **Prove it.** The bundled validator gates the output — then it opens in your browser.
+3. **Prove it.** The bundled validator gates the output; pass the check before opening the file in your browser.
 
 ```bash
 npx -y @zakelfassi/htmlify htmlify-answer --validate artifact.html --profile auto
